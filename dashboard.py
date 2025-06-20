@@ -247,9 +247,13 @@ def process_df(df):
     }
   }
 
-  site = st.selectbox("Site", list(sites.keys()))
-  data_type = st.selectbox("Data Type", list(sites[site].keys()))
-  data_desc = st.selectbox("Data Point", list(sites[site][data_type].keys()))
+  col1, col2, col3 = st.columns([1, 1, 2])
+  with col1:
+    site = st.selectbox("Site", list(sites.keys()))
+  with col2:
+    data_type = st.selectbox("Data Type", list(sites[site].keys()))
+  with col3:
+    data_desc = st.selectbox("Data Point", list(sites[site][data_type].keys()))
   data_point = sites[site][data_type][data_desc]
 
   matches = re.findall(r'\d+', data_point)
@@ -264,10 +268,24 @@ def process_df(df):
     case '20':
       unit = 'gal'
 
-  fig = px.line(df_mod, x=df_mod.index, y=data_point)
+  # Checkbox to show/hide outliers
+  show_outliers = st.checkbox("Show Outliers", value=True)
+  if not show_outliers:
+    # Use z-score or IQR method to filter out outliers
+    q1 = df_mod[data_point].quantile(0.25)
+    q3 = df_mod[data_point].quantile(0.75)
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    df_plot = df_mod[(df_mod[data_point] >= lower_bound) & (df_mod[data_point] <= upper_bound)]
+  else:
+    df_plot = df_mod
+
+  fig = px.line(df_plot, x=df_plot.index, y=data_point)
   fig.update_layout(xaxis_title="Date", yaxis_title=unit)
   st.plotly_chart(fig, use_container_width=True)
 
+# main program starts here
 st.markdown("""
   <style>
       .block-container {
