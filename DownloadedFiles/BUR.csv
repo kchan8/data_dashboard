@@ -1,8 +1,0 @@
-curValue,fromValue,diff,entityId,name,prevMonthValue
---------,---------,----,--------,----,--------------
-59870.00,52616.77,7253.23,6051,Solar Generation,70230.00
-40487.51,39025.43,1462.08,6000,VDG 6,53152.88
-38449.54,37731.94,717.60,6052,Energy Delivered to Grid (Solar Surplus),46408.38
-17327.23,17282.19,45.04,6050,Energy Received From Grid,29281.54
-
-(4 rows affected)
