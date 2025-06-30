@@ -10,7 +10,7 @@ def process_df(df):
   # missing = full_range.difference(df.index)
   # st.write(missing)
   df_mod = df.reindex(full_range)
-  st.title(f"Oracle Dashboard {df.index.min().date()}  to {df.index.max().date()}")
+  st.title(f"Dashboard {df.index.min().date()}  to {df.index.max().date()}")
 
   sites = {
     "Burlington": {
