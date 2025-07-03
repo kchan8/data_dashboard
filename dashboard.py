@@ -3,6 +3,14 @@ import re
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import math
+
+def get_keys(obj):
+  keys = []
+  for k, v in obj.items():
+    if v is not None and not (isinstance(v, float) and math.isnan(v)):
+      keys.append(k)      
+  return keys
 
 def process_df(df):
   df = df.sort_index()
@@ -16,7 +24,7 @@ def process_df(df):
   with col1:
     site = st.selectbox("Site", list(sites.keys()))
   with col2:
-    data_type = st.selectbox("Data Type", list(sites[site].keys()))
+    data_type = st.selectbox("Data Type", get_keys(sites[site]))
   with col3:
     data_desc = st.selectbox("Data Point", list(sites[site][data_type].keys()))
   data_point = sites[site][data_type][data_desc]
