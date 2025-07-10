@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import math
+import numpy as np
 
 def get_keys(obj):
   keys = []
@@ -45,12 +46,15 @@ def process_df(df):
   show_outliers = st.checkbox("Show Outliers", value=True)
   if not show_outliers:
     # Use z-score or IQR method to filter out outliers
-    q1 = df_mod[data_point].quantile(0.25)
-    q3 = df_mod[data_point].quantile(0.75)
+    q1 = df_mod[data_point].quantile(0.10)
+    q3 = df_mod[data_point].quantile(0.90)
     iqr = q3 - q1
     lower_bound = q1 - 1.5 * iqr
     upper_bound = q3 + 1.5 * iqr
-    df_plot = df_mod[(df_mod[data_point] >= lower_bound) & (df_mod[data_point] <= upper_bound)]
+    # df_plot = df_mod[(df_mod[data_point] >= lower_bound) & (df_mod[data_point] <= upper_bound)]
+    df_plot = df_mod.copy()
+    mask = (df_plot[data_point] < lower_bound) | (df_plot[data_point] > upper_bound)
+    df_plot.loc[mask, data_point] = np.nan
   else:
     df_plot = df_mod
 
