@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import math
 import numpy as np
+from datetime import datetime
 
 def get_keys(obj):
   keys = []
@@ -61,6 +62,17 @@ def process_df(df):
   fig = px.line(df_plot, x=df_plot.index, y=data_point)
   fig.update_layout(xaxis_title="Date", yaxis_title=unit)
   st.plotly_chart(fig, use_container_width=True)
+
+  data_missing = list(df_mod[df_mod[data_point].isnull()].index)
+  if data_missing:
+    st.header(f"Time of missing data ({len(data_missing)})")
+    cols_per_row = 7
+    for i in range(0, len(data_missing), cols_per_row):
+      cols = st.columns(cols_per_row)
+      for j in range(cols_per_row):
+        if i + j < len(data_missing):
+          dt_obj = datetime.strptime(str(data_missing[i + j]), "%Y-%m-%d %H:%M:%S")
+          cols[j].write(dt_obj.strftime("%m/%d/%y %I:%M %p"))
 
 # main program starts here
 st.markdown("""
