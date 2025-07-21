@@ -59,8 +59,68 @@ def process_df(df):
   else:
     df_plot = df_mod
 
-  fig = px.line(df_plot, x=df_plot.index, y=data_point)
-  fig.update_layout(xaxis_title="Date", yaxis_title=unit)
+  # this is hight-level API for quick and consise plotting
+  # fig = px.line(df_plot, x=df_plot.index, y=data_point)
+  # fig.update_layout(xaxis_title="Date", yaxis_title=unit)
+
+  # this is low-level API that offers full customization and control
+  fig = go.Figure()
+  fig.add_trace(go.Scatter(
+    x=df_plot.index,
+    y=df_plot[data_point],
+    mode='lines',
+    name='Hourly Data',
+    yaxis='y1'
+  ))
+  
+  df_daily = df_plot[data_point].resample('D').sum()
+  # shift display daily total at end of day
+  df_daily.index = df_daily.index + pd.Timedelta(hours=23, minutes=59)
+  # Add the daily total as a red line
+  fig.add_trace(go.Scatter(
+      x=df_daily.index,
+      y=df_daily.values,
+      mode='lines+markers',
+      name='Daily Total',
+      line=dict(color='red', width=2, dash='dot'),
+      marker=dict(color='red'),
+      yaxis='y2'
+  ))
+
+  df_ema = df_daily.ewm(span=7, adjust=False).mean()
+  fig.add_trace(go.Scatter(
+    x=df_ema.index,
+    y=df_ema.values,
+    mode='lines',
+    name='7-Day EMA',
+    line=dict(color='green', width=2, dash='solid'),
+    yaxis='y2'  # solid green line
+  ))
+
+  # Update layout and display
+  fig.update_layout(
+      xaxis=dict(title="Date"),
+      yaxis=dict(title="Hourly " + unit,
+                 side='left',
+                 showgrid=True),
+      yaxis2=dict(title="Daily Total " + unit,
+                  overlaying='y',
+                  side='right',
+                  showgrid=False,
+                  tickfont=dict(color='red'),     # Make tick labels red
+                  titlefont=dict(color='red')     # Optional: make the axis title red too)
+      ),
+      # legend=dict(title="Legend")
+      legend=dict(
+        x=1.1,              # Move further to the right (default is 1)
+        y=1,                # Top of the chart
+        xanchor='left',     # Anchor the legend box to the left side of the x position
+        bgcolor='rgba(255,255,255,0.5)',  # Optional: semi-transparent background
+        bordercolor='gray',
+        borderwidth=1
+    )
+  )
+
   st.plotly_chart(fig, use_container_width=True)
 
   data_missing = list(df_mod[df_mod[data_point].isnull()].index)
