@@ -14,6 +14,21 @@ def get_keys(obj):
       keys.append(k)      
   return keys
 
+def find_data_points(d, str):
+    data_points = []
+    def traverse(obj, path=[]):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                new_path = path + [k]
+                if str in k.lower():
+                    data_points.append({"site": path[0] if path else None, "type": path[1] if path else None, "name": k, "index": v})
+                traverse(v, new_path)
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item, path)
+    traverse(d)
+    return data_points
+
 def process_df(df):
   df = df.sort_index()
   full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='h')
@@ -78,13 +93,13 @@ def process_df(df):
   df_daily.index = df_daily.index + pd.Timedelta(hours=23, minutes=59)
   # Add the daily total as a red line
   fig.add_trace(go.Scatter(
-      x=df_daily.index,
-      y=df_daily.values,
-      mode='lines+markers',
-      name='Daily Total',
-      line=dict(color='red', width=2, dash='dot'),
-      marker=dict(color='red'),
-      yaxis='y2'
+    x=df_daily.index,
+    y=df_daily.values,
+    mode='lines+markers',
+    name='Daily Total',
+    line=dict(color='red', width=2, dash='dot'),
+    marker=dict(color='red'),
+    yaxis='y2'
   ))
 
   df_ema = df_daily.ewm(span=7, adjust=False).mean()
@@ -99,29 +114,37 @@ def process_df(df):
 
   # Update layout and display
   fig.update_layout(
-      xaxis=dict(title="Date"),
-      yaxis=dict(title="Hourly " + unit,
-                 side='left',
-                 showgrid=True),
-      yaxis2=dict(title="Daily Total " + unit,
-                  overlaying='y',
-                  side='right',
-                  showgrid=False,
-                  tickfont=dict(color='red'),     # Make tick labels red
-                  titlefont=dict(color='red')     # Optional: make the axis title red too)
-      ),
-      # legend=dict(title="Legend")
-      legend=dict(
-        x=1.1,              # Move further to the right (default is 1)
-        y=1,                # Top of the chart
-        xanchor='left',     # Anchor the legend box to the left side of the x position
-        bgcolor='rgba(255,255,255,0.5)',  # Optional: semi-transparent background
-        bordercolor='gray',
-        borderwidth=1
+    xaxis=dict(title="Date"),
+    yaxis=dict(title="Hourly " + unit,
+                side='left',
+                showgrid=True),
+    yaxis2=dict(title="Daily Total " + unit,
+                overlaying='y',
+                side='right',
+                showgrid=False,
+                tickfont=dict(color='red'),     # Make tick labels red
+                titlefont=dict(color='red')     # Optional: make the axis title red too)
+    ),
+    # legend=dict(title="Legend")
+    legend=dict(
+      x=1.1,              # Move further to the right (default is 1)
+      y=1,                # Top of the chart
+      xanchor='left',     # Anchor the legend box to the left side of the x position
+      bgcolor='rgba(255,255,255,0.5)',  # Optional: semi-transparent background
+      bordercolor='gray',
+      borderwidth=1
     )
   )
 
   st.plotly_chart(fig, use_container_width=True)
+
+  # check all data points for solar that has very low daily total on previous day
+  solar_check = find_data_points(sites.to_dict(), "solar")
+  for s in solar_check:
+    if s["type"] == "Energy":
+      solar_daily_data = df_mod[s["index"]].resample('D').sum()
+      if solar_daily_data.iloc[-1] <= 10:
+        st.write(f"Note: Check site {s['site']} data point {s['name']}")
 
   data_missing = list(df_mod[df_mod[data_point].isnull()].index)
   if data_missing:
