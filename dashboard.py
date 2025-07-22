@@ -37,13 +37,17 @@ def process_df(df):
   df_mod = df.reindex(full_range)
   st.title(f"Dashboard {df.index.min().date()}  to {df.index.max().date()}")
 
-  col1, col2, col3 = st.columns([1, 1, 2])
+  col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
   with col1:
     site = st.selectbox("Site", list(sites.keys()))
   with col2:
     data_type = st.selectbox("Data Type", get_keys(sites[site]))
   with col3:
     data_desc = st.selectbox("Data Point", list(sites[site][data_type].keys()))
+  with col4:
+    match = re.match(r"_(\d+)_(\d+)", sites[site][data_type][data_desc])
+    if match:
+      st.write(f"Entity ID: {int(match.group(1))}")
   data_point = sites[site][data_type][data_desc]
 
   matches = re.findall(r'\d+', data_point)
