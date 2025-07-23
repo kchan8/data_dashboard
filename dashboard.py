@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import math
 import numpy as np
-from datetime import datetime
+from datetime import date, datetime
 
 def get_keys(obj):
   keys = []
@@ -29,13 +29,42 @@ def find_data_points(d, str):
     traverse(d)
     return data_points
 
+def reset_date(start_date, end_date):
+  st.session_state.start_date = start_date
+  st.session_state.end_date = end_date
+  st.rerun()
+
 def process_df(df):
   df = df.sort_index()
   full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='h')
   # missing = full_range.difference(df.index)
   # st.write(missing)
   df_mod = df.reindex(full_range)
-  st.title(f"Dashboard {df.index.min().date()}  to {df.index.max().date()}")
+
+  if st.button("Reset Date"):
+    reset_date(df.index.min(), df.index.max())
+
+  col1, col2, col3, col4, col5 = st.columns([5, 3, 1.5, 3, 3])
+  with col1:
+    st.title("Dashboard From:")
+  with col2:
+    if 'start_date' not in st.session_state:
+      st.session_state.start_date = df.index.min()
+    start_date = st.date_input(' ',
+                               min_value=df.index.min(), 
+                               max_value=df.index.max(), 
+                               key='start_date')
+  with col3:
+    st.title("To:")
+  with col4:
+    if 'end_date' not in st.session_state:
+      st.session_state.end_date = df.index.max()
+    end_date = st.date_input(' ',
+                             min_value=df.index.min(),
+                             max_value=df.index.max(),
+                             key='end_date')
+  with col5:
+    st.title(" ")
 
   col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
   with col1:
@@ -83,10 +112,13 @@ def process_df(df):
   # fig.update_layout(xaxis_title="Date", yaxis_title=unit)
 
   # this is low-level API that offers full customization and control
+  start_dt = pd.to_datetime(start_date)
+  end_dt = pd.to_datetime(end_date)
+  time_range = (df_plot.index >= start_dt) & (df_plot.index <= end_dt)
   fig = go.Figure()
   fig.add_trace(go.Scatter(
-    x=df_plot.index,
-    y=df_plot[data_point],
+    x=df_plot.index[time_range],
+    y=df_plot[data_point][time_range],
     mode='lines',
     name='Hourly Data',
     yaxis='y1'
@@ -95,10 +127,11 @@ def process_df(df):
   df_daily = df_plot[data_point].resample('D').sum()
   # shift display daily total at end of day
   df_daily.index = df_daily.index + pd.Timedelta(hours=23, minutes=59)
+  date_range = (df_daily.index >= start_dt) & (df_daily.index <= end_dt)
   # Add the daily total as a red line
   fig.add_trace(go.Scatter(
-    x=df_daily.index,
-    y=df_daily.values,
+    x=df_daily.index[date_range],
+    y=df_daily.values[date_range],
     mode='lines+markers',
     name='Daily Total',
     line=dict(color='red', width=2, dash='dot'),
@@ -108,8 +141,8 @@ def process_df(df):
 
   df_ema = df_daily.ewm(span=7, adjust=False).mean()
   fig.add_trace(go.Scatter(
-    x=df_ema.index,
-    y=df_ema.values,
+    x=df_ema.index[date_range],
+    y=df_ema.values[date_range],
     mode='lines',
     name='7-Day EMA',
     line=dict(color='green', width=2, dash='solid'),
@@ -181,7 +214,7 @@ with col2:
 if siteInfo is not None:
   sites = pd.read_json(siteInfo)
 
-if dataFile is not None:
+if siteInfo is not None and dataFile is not None:
   # skip 2nd line and the last line
   df = pd.read_csv(dataFile, skiprows=[1], header=0, skipfooter=1, index_col='time', parse_dates=['time'], engine='python')
   process_df(df)
