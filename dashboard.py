@@ -39,7 +39,7 @@ def show_data_1():
 def hide_data_1():
   st.session_state.show_data_1 = False
 
-def process_df(df):
+def process_df(site_name, df):
   df = df.sort_index()
   full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='h')
   # missing = full_range.difference(df.index)
@@ -51,12 +51,12 @@ def process_df(df):
     if st.button("Reset Date"):
       reset_date(df.index.min(), df.index.max())
   with col2:
-    if st.session_state.show_data_1:
+    if 'show_data_1' in st.session_state and st.session_state.show_data_1:
       st.button("Hide data point 1", on_click=hide_data_1)
 
-  col1, col2, col3, col4, col5 = st.columns([5, 3, 1.5, 3, 4])
+  col1, col2, col3, col4, col5 = st.columns([7, 3, 1.5, 3, 4])
   with col1:
-    st.title("Dashboard From:")
+    st.title(f"{site_name} Dashboard From:")
   with col2:
     if 'start_date' not in st.session_state:
       st.session_state.start_date = df.index.min()
@@ -230,7 +230,7 @@ def process_df(df):
       y=df_plot_1[data_point_1][time_range],
       mode='lines',
       name=data_desc_1,
-      line=dict(color='red', width=2, dash='solid'),
+      line=dict(color='orange', width=2, dash='solid'),
       yaxis='y2'
     ))
     fig.update_layout(
@@ -242,8 +242,8 @@ def process_df(df):
                   overlaying='y',
                   side='right',
                   showgrid=False,
-                  tickfont=dict(color='red'),     # Make tick labels red
-                  titlefont=dict(color='red')     # Optional: make the axis title red too)
+                  tickfont=dict(color='orange'),
+                  titlefont=dict(color='orange')
       ),
       # legend=dict(title="Legend")
       legend=dict(
@@ -295,9 +295,10 @@ with col2:
   dataFile = st.file_uploader("Upload CSV Data file")
 
 if siteInfo is not None:
+  site_name = siteInfo.name.split('.')[0].capitalize()
   sites = pd.read_json(siteInfo)
 
 if siteInfo is not None and dataFile is not None:
   # skip 2nd line and the last line
   df = pd.read_csv(dataFile, skiprows=[1], header=0, skipfooter=1, index_col='time', parse_dates=['time'], engine='python')
-  process_df(df)
+  process_df(site_name, df)
