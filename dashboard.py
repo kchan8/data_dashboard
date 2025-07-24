@@ -158,10 +158,10 @@ def process_df(site_name, df):
     else:
       df_plot_1 = df_mod
 
-  # this is hight-level API for quick and consise plotting
-  # fig = px.line(df_plot, x=df_plot.index, y=data_point)
-  # fig.update_layout(xaxis_title="Date", yaxis_title=unit)
-
+    with col4:
+      if unit == unit_1:
+        same_y_axis = st.checkbox("Use same y-axis", value=False)
+      
   # this is low-level API that offers full customization and control
   start_dt = pd.to_datetime(start_date)
   end_dt = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(hours=1)
@@ -231,7 +231,7 @@ def process_df(site_name, df):
       mode='lines',
       name=data_desc_1,
       line=dict(color='orange', width=2, dash='solid'),
-      yaxis='y2'
+      yaxis='y1' if same_y_axis else 'y2' 
     ))
     fig.update_layout(
       xaxis=dict(title="Date"),
