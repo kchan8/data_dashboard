@@ -34,6 +34,11 @@ def reset_date(start_date, end_date):
   st.session_state.end_date = end_date
   st.rerun()
 
+def show_data_1():
+  st.session_state.show_data_1 = True
+def hide_data_1():
+  st.session_state.show_data_1 = False
+
 def process_df(df):
   df = df.sort_index()
   full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='h')
@@ -41,10 +46,15 @@ def process_df(df):
   # st.write(missing)
   df_mod = df.reindex(full_range)
 
-  if st.button("Reset Date"):
-    reset_date(df.index.min(), df.index.max())
+  col1, col2, col3 = st.columns([1, 1, 6])
+  with col1:
+    if st.button("Reset Date"):
+      reset_date(df.index.min(), df.index.max())
+  with col2:
+    if st.session_state.show_data_1:
+      st.button("Hide data point 1", on_click=hide_data_1)
 
-  col1, col2, col3, col4, col5 = st.columns([5, 3, 1.5, 3, 3])
+  col1, col2, col3, col4, col5 = st.columns([5, 3, 1.5, 3, 4])
   with col1:
     st.title("Dashboard From:")
   with col2:
@@ -63,8 +73,8 @@ def process_df(df):
                              min_value=df.index.min(),
                              max_value=df.index.max(),
                              key='end_date')
-  with col5:
-    st.title(" ")
+
+  show_outliers = st.checkbox("Show Outliers", value=True)
 
   col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
   with col1:
@@ -78,7 +88,6 @@ def process_df(df):
     if match:
       st.write(f"Entity ID: {int(match.group(1))}")
   data_point = sites[site][data_type][data_desc]
-
   matches = re.findall(r'\d+', data_point)
   last_number = matches[-1] if matches else None
   match(last_number):
@@ -92,7 +101,7 @@ def process_df(df):
       unit = 'gal'
 
   # Checkbox to show/hide outliers
-  show_outliers = st.checkbox("Show Outliers", value=True)
+  # show_outliers = st.checkbox("Show Outliers", value=True)
   if not show_outliers:
     # Use z-score or IQR method to filter out outliers
     q1 = df_mod[data_point].quantile(0.10)
@@ -107,71 +116,145 @@ def process_df(df):
   else:
     df_plot = df_mod
 
+  if "show_data_1" not in st.session_state:
+    st.session_state.show_data_1 = False
+  if not st.session_state.show_data_1:
+    st.button("Add another data point", on_click=show_data_1)
+  if st.session_state.show_data_1:
+    col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
+    with col1:
+      site_1 = st.selectbox("Site 1", list(sites.keys()))
+    with col2:
+      data_type_1 = st.selectbox("Data Type 1", get_keys(sites[site_1]))
+    with col3:
+      data_desc_1 = st.selectbox("Data Point 1", list(sites[site_1][data_type_1].keys()), key="1")
+    with col4:
+      match_1 = re.match(r"_(\d+)_(\d+)", sites[site_1][data_type_1][data_desc_1])
+      if match_1:
+        st.write(f"Entity ID: {int(match_1.group(1))}")
+    data_point_1 = sites[site_1][data_type_1][data_desc_1]
+    matches = re.findall(r'\d+', data_point_1)
+    last_number = matches[-1] if matches else None
+    match(last_number):
+      case '1':
+        unit_1 = 'kWh'
+      case '2':
+        unit_1 = 'thm'
+      case '19':
+        unit_1 = 'ccf'
+      case '20':
+        unit_1 = 'gal'
+    if not show_outliers:
+      # Use z-score or IQR method to filter out outliers
+      q1_1 = df_mod[data_point_1].quantile(0.10)
+      q3_1 = df_mod[data_point_1].quantile(0.90)
+      iqr_1 = q3_1 - q1_1
+      lower_bound_1 = q1_1 - 1.5 * iqr_1
+      upper_bound_1 = q3_1 + 1.5 * iqr_1
+      # df_plot = df_mod[(df_mod[data_point] >= lower_bound) & (df_mod[data_point] <= upper_bound)]
+      df_plot_1 = df_mod.copy()
+      mask = (df_plot_1[data_point_1] < lower_bound_1) | (df_plot_1[data_point_1] > upper_bound_1)
+      df_plot_1.loc[mask, data_point_1] = np.nan
+    else:
+      df_plot_1 = df_mod
+
   # this is hight-level API for quick and consise plotting
   # fig = px.line(df_plot, x=df_plot.index, y=data_point)
   # fig.update_layout(xaxis_title="Date", yaxis_title=unit)
 
   # this is low-level API that offers full customization and control
   start_dt = pd.to_datetime(start_date)
-  end_dt = pd.to_datetime(end_date)
+  end_dt = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(hours=1)
   time_range = (df_plot.index >= start_dt) & (df_plot.index <= end_dt)
   fig = go.Figure()
+
   fig.add_trace(go.Scatter(
     x=df_plot.index[time_range],
     y=df_plot[data_point][time_range],
     mode='lines',
-    name='Hourly Data',
+    name='Hourly Data' if not st.session_state.show_data_1 else data_desc,
     yaxis='y1'
   ))
   
-  df_daily = df_plot[data_point].resample('D').sum()
-  # shift display daily total at end of day
-  df_daily.index = df_daily.index + pd.Timedelta(hours=23, minutes=59)
-  date_range = (df_daily.index >= start_dt) & (df_daily.index <= end_dt)
-  # Add the daily total as a red line
-  fig.add_trace(go.Scatter(
-    x=df_daily.index[date_range],
-    y=df_daily.values[date_range],
-    mode='lines+markers',
-    name='Daily Total',
-    line=dict(color='red', width=2, dash='dot'),
-    marker=dict(color='red'),
-    yaxis='y2'
-  ))
+  if not st.session_state.show_data_1:
+    df_daily = df_plot[data_point].resample('D').sum()
+    date_range = (df_daily.index >= start_dt) & (df_daily.index <= end_dt)
+    # shift display daily total at end of day
+    df_daily.index = df_daily.index + pd.Timedelta(hours=23, minutes=59)
+    fig.add_trace(go.Scatter(
+      x=df_daily.index[date_range],
+      y=df_daily.values[date_range],
+      mode='lines+markers',
+      name='Daily Total',
+      line=dict(color='red', width=2, dash='dot'),
+      marker=dict(color='red'),
+      yaxis='y2'
+    ))
 
-  df_ema = df_daily.ewm(span=7, adjust=False).mean()
-  fig.add_trace(go.Scatter(
-    x=df_ema.index[date_range],
-    y=df_ema.values[date_range],
-    mode='lines',
-    name='7-Day EMA',
-    line=dict(color='green', width=2, dash='solid'),
-    yaxis='y2'  # solid green line
-  ))
+    df_ema = df_daily.ewm(span=7, adjust=False).mean()
+    fig.add_trace(go.Scatter(
+      x=df_ema.index[date_range],
+      y=df_ema.values[date_range],
+      mode='lines',
+      name='7-Day EMA',
+      line=dict(color='green', width=2, dash='solid'),
+      yaxis='y2'  # solid green line
+    ))
 
-  # Update layout and display
-  fig.update_layout(
-    xaxis=dict(title="Date"),
-    yaxis=dict(title="Hourly " + unit,
-                side='left',
-                showgrid=True),
-    yaxis2=dict(title="Daily Total " + unit,
-                overlaying='y',
-                side='right',
-                showgrid=False,
-                tickfont=dict(color='red'),     # Make tick labels red
-                titlefont=dict(color='red')     # Optional: make the axis title red too)
-    ),
-    # legend=dict(title="Legend")
-    legend=dict(
-      x=1.1,              # Move further to the right (default is 1)
-      y=1,                # Top of the chart
-      xanchor='left',     # Anchor the legend box to the left side of the x position
-      bgcolor='rgba(255,255,255,0.5)',  # Optional: semi-transparent background
-      bordercolor='gray',
-      borderwidth=1
+    # Update layout and display
+    fig.update_layout(
+      xaxis=dict(title="Date"),
+      yaxis=dict(title="Hourly " + unit,
+                  side='left',
+                  showgrid=True),
+      yaxis2=dict(title="Daily Total " + unit,
+                  overlaying='y',
+                  side='right',
+                  showgrid=False,
+                  tickfont=dict(color='red'),     # Make tick labels red
+                  titlefont=dict(color='red')     # Optional: make the axis title red too)
+      ),
+      # legend=dict(title="Legend")
+      legend=dict(
+        x=1.1,              # Move further to the right (default is 1)
+        y=1,                # Top of the chart
+        xanchor='left',     # Anchor the legend box to the left side of the x position
+        bgcolor='rgba(255,255,255,0.5)',  # Optional: semi-transparent background
+        bordercolor='gray',
+        borderwidth=1
+      )
     )
-  )
+  else:
+    fig.add_trace(go.Scatter(
+      x=df_plot_1.index[time_range],
+      y=df_plot_1[data_point_1][time_range],
+      mode='lines',
+      name=data_desc_1,
+      line=dict(color='red', width=2, dash='solid'),
+      yaxis='y2'
+    ))
+    fig.update_layout(
+      xaxis=dict(title="Date"),
+      yaxis=dict(title=unit,
+                  side='left',
+                  showgrid=True),
+      yaxis2=dict(title=unit_1,
+                  overlaying='y',
+                  side='right',
+                  showgrid=False,
+                  tickfont=dict(color='red'),     # Make tick labels red
+                  titlefont=dict(color='red')     # Optional: make the axis title red too)
+      ),
+      # legend=dict(title="Legend")
+      legend=dict(
+        x=1.1,              # Move further to the right (default is 1)
+        y=1,                # Top of the chart
+        xanchor='left',     # Anchor the legend box to the left side of the x position
+        bgcolor='rgba(255,255,255,0.5)',  # Optional: semi-transparent background
+        bordercolor='gray',
+        borderwidth=1
+      )
+    )
 
   st.plotly_chart(fig, use_container_width=True)
 
