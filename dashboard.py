@@ -46,13 +46,8 @@ def process_df(site_name, df):
   # st.write(missing)
   df_mod = df.reindex(full_range)
 
-  col1, col2, col3 = st.columns([1, 1, 6])
-  with col1:
-    if st.button("Reset Date"):
-      reset_date(df.index.min(), df.index.max())
-  with col2:
-    if 'show_data_1' in st.session_state and st.session_state.show_data_1:
-      st.button("Hide data point 1", on_click=hide_data_1)
+  if st.button("Reset Date"):
+    reset_date(df.index.min(), df.index.max())
 
   col1, col2, col3, col4, col5 = st.columns([7, 3, 1.5, 3, 4])
   with col1:
@@ -73,8 +68,15 @@ def process_df(site_name, df):
                              min_value=df.index.min(),
                              max_value=df.index.max(),
                              key='end_date')
-
-  show_outliers = st.checkbox("Show Outliers", value=True)
+    
+  col1, col2, col3 = st.columns([1, 2, 6])
+  with col1:
+    show_outliers = st.checkbox("Show Outliers", value=True)
+  with col2:
+    if not st.session_state.show_data_1:
+      st.button("Add another data point", on_click=show_data_1)
+    if 'show_data_1' in st.session_state and st.session_state.show_data_1:
+      st.button("Hide data point 1", on_click=hide_data_1)
 
   col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
   with col1:
@@ -118,8 +120,8 @@ def process_df(site_name, df):
 
   if "show_data_1" not in st.session_state:
     st.session_state.show_data_1 = False
-  if not st.session_state.show_data_1:
-    st.button("Add another data point", on_click=show_data_1)
+  # if not st.session_state.show_data_1:
+  #   st.button("Add another data point", on_click=show_data_1)
   if st.session_state.show_data_1:
     col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
     with col1:
@@ -160,7 +162,9 @@ def process_df(site_name, df):
 
     with col4:
       if unit == unit_1:
-        same_y_axis = st.checkbox("Use same y-axis", value=False)
+        same_y_axis = st.checkbox("Use same y-axis", value=True)
+      else:
+        same_y_axis = False
       
   # this is low-level API that offers full customization and control
   start_dt = pd.to_datetime(start_date)
