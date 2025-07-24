@@ -73,10 +73,10 @@ def process_df(site_name, df):
   with col1:
     show_outliers = st.checkbox("Show Outliers", value=True)
   with col2:
-    if not st.session_state.show_data_1:
-      st.button("Add another data point", on_click=show_data_1)
     if 'show_data_1' in st.session_state and st.session_state.show_data_1:
       st.button("Hide data point 1", on_click=hide_data_1)
+    else:
+      st.button("Add another data point", on_click=show_data_1)
 
   col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
   with col1:
