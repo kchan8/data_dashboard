@@ -5,7 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import math
 import numpy as np
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 def get_keys(obj):
   keys = []
@@ -39,9 +40,14 @@ def show_data_1():
 def hide_data_1():
   st.session_state.show_data_1 = False
 
-def process_df(site_name, df):
+def process_df(site_name, df, end_date_str):
   df = df.sort_index()
-  full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq='h')
+
+  end_time_obj = datetime.strptime(end_date_str, "%m%d%Y").replace(hour=23, minute=0) - timedelta(days=1)
+  start_time_obj = end_time_obj.replace(day=1) - relativedelta(months=2)
+  start_time_obj = start_time_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+
+  full_range = pd.date_range(start=start_time_obj, end=end_time_obj, freq='h')
   # missing = full_range.difference(df.index)
   # st.write(missing)
   df_mod = df.reindex(full_range)
@@ -303,6 +309,7 @@ if siteInfo is not None:
   sites = pd.read_json(siteInfo)
 
 if siteInfo is not None and dataFile is not None:
+  match = re.search(r'_(\d{8})\.csv', dataFile.name)
   # skip 2nd line and the last line
   df = pd.read_csv(dataFile, skiprows=[1], header=0, skipfooter=1, index_col='time', parse_dates=['time'], engine='python')
-  process_df(site_name, df)
+  process_df(site_name, df, match.group(1))
