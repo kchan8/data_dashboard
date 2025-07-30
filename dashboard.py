@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.version
 import re
 import pandas as pd
 import plotly.express as px
@@ -52,8 +53,12 @@ def process_df(site_name, df, end_date_str):
   # st.write(missing)
   df_mod = df.reindex(full_range)
 
-  if st.button("Reset Date"):
-    reset_date(df.index.min(), df.index.max())
+  col1, col2 = st.columns([1, 3])
+  with col1:
+    st.subheader(f"Streamlit version: {streamlit.__version__}")
+  with col2:
+    if st.button("Reset Date"):
+      reset_date(df.index.min(), df.index.max())
 
   col1, col2, col3, col4, col5 = st.columns([7, 3, 1.5, 3, 4])
   with col1:
@@ -285,14 +290,24 @@ def process_df(site_name, df, end_date_str):
       for j in range(cols_per_row):
         if i + j < len(data_missing):
           dt_obj = datetime.strptime(str(data_missing[i + j]), "%Y-%m-%d %H:%M:%S")
-          cols[j].write(dt_obj.strftime("%m/%d/%y %I:%M %p"))
+          # cols[j].write(dt_obj.strftime("%m/%d/%y %I:%M %p"))
+          cols[j].markdown(
+                    f"<div class='row-spacing'>{dt_obj.strftime('%m/%d/%y %I:%M %p')}</div>",
+                    unsafe_allow_html=True
+                )
 
 # main program starts here
 st.markdown("""
   <style>
-      .block-container {
-          padding-top: 1rem;
-      }
+    .block-container {
+        padding-top: 1rem;
+    }
+    .row-spacing > div {
+      margin-top: 0px !important;
+      margin-bottom: 0px !important;
+      padding-top: 0px !important;
+      padding-bottom: 0px !important;
+    }
   </style>
 """, unsafe_allow_html=True)
 
