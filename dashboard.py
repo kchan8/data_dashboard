@@ -8,6 +8,7 @@ import math
 import numpy as np
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from streamlit_js_eval import streamlit_js_eval
 
 def get_keys(obj):
   keys = []
@@ -275,15 +276,19 @@ def process_df(site_name, df, end_date_str):
 
   # check all data points for solar that has very low daily total on previous day
   solar_check = find_data_points(sites.to_dict(), "solar")
+  error_found = False
   for s in solar_check:
     if s["type"] == "Energy":
       solar_daily_data = df_mod[s["index"]].resample('D').sum()
       if solar_daily_data.iloc[-1] <= 10:
-        st.write(f"Note: Check site {s['site']} data point {s['name']}")
+        if not error_found:
+          error_found = True
+          st.subheader(f"Check data point(s):")
+        st.markdown(f"<div class='row-spacing'>{s['site']} / {s['name']}</div>", unsafe_allow_html=True)
 
   data_missing = list(df_mod[df_mod[data_point].isnull()].index)
   if data_missing:
-    st.header(f"Time of missing data ({len(data_missing)})")
+    st.subheader(f"Time of missing data ({len(data_missing)})")
     cols_per_row = 7
     for i in range(0, len(data_missing), cols_per_row):
       cols = st.columns(cols_per_row)
@@ -313,7 +318,14 @@ st.markdown("""
 
 st.set_page_config(layout="wide")
 
-col1, col2 = st.columns([1, 2])
+screen_width = streamlit_js_eval(js_expressions='window.innerWidth', key='WIN_WIDTH')
+# st.write("Width: ", screen_width)
+
+if screen_width is not None and screen_width > 1130:
+  col1, col2 = st.columns([1, 2])
+else:
+  col1, col2 = st.columns([1, 1])
+
 with col1:
   siteInfo = st.file_uploader("Upload site info")
 with col2:
