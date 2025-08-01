@@ -41,9 +41,9 @@ def create_file_upload_section(screen_width):
         col1, col2 = st.columns([1, 1])
 
     with col1:
-        site_info = st.file_uploader("Upload site info, main")
+        site_info = st.file_uploader("Upload site info")
     with col2:
-        data_file = st.file_uploader("Upload CSV Data file")
+        data_file = st.file_uploader("Upload CSV data file")
     
     return site_info, data_file
 
