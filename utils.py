@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-
+import calendar
 
 def get_keys(obj):
     """Extract non-null keys from a dictionary object."""
@@ -87,6 +87,9 @@ def get_entity_id(data_point):
     match = re.match(r"_(\d+)_(\d+)", data_point)
     return int(match.group(1)) if match else None
 
+def is_last_day_of_month(dt: datetime) -> bool:
+    last_day = calendar.monthrange(dt.year, dt.month)[1]
+    return dt.day == last_day
 
 def prepare_dataframe(df, end_date_str):
     """
@@ -102,7 +105,10 @@ def prepare_dataframe(df, end_date_str):
     df = df.sort_index()
     
     end_time_obj = datetime.strptime(end_date_str, "%m%d%Y").replace(hour=23, minute=0) - timedelta(days=1)
-    start_time_obj = end_time_obj.replace(day=1) - relativedelta(months=2)
+    if is_last_day_of_month(end_time_obj):
+        start_time_obj = end_time_obj.replace(day=1) - relativedelta(months=1)
+    else:
+        start_time_obj = end_time_obj.replace(day=1) - relativedelta(months=2)
     start_time_obj = start_time_obj.replace(hour=0, minute=0, second=0, microsecond=0)
     
     full_range = pd.date_range(start=start_time_obj, end=end_time_obj, freq='h')
