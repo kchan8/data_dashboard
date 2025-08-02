@@ -29,7 +29,7 @@ def main():
     if site_info is not None and data_file is not None:
         try:
             # Extract date from filename
-            match = re.search(r'_(\d{8})\.csv', data_file.name)
+            match = re.search(r'_(\d{8})(?:_[^_]*)?\.csv', data_file.name)
             if not match:
                 st.error("Could not extract date from filename. Expected format: *_MMDDYYYY.csv")
                 return
