@@ -139,24 +139,58 @@ def create_data_selection_section(sites, key_suffix="", show_same_y_axis_option=
     Returns:
         Tuple of (site, data_type, data_desc, data_point, unit)
     """
-    col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
+    # Unique key for session state
+    site_key = f"site{key_suffix}"
+    prev_site_key = f"prev_site{key_suffix}"
+    type_key = f"data_type{key_suffix}"
+    prev_type_key = f"prev_type{key_suffix}"
+    index_key = f"data_index{key_suffix}"
+    if prev_site_key not in st.session_state:
+        st.session_state[prev_site_key] = None
+    if type_key not in st.session_state:
+        st.session_state[type_key] = "Energy"
+    if prev_type_key not in st.session_state:
+        st.session_state[prev_type_key] = None
+    if index_key not in st.session_state:
+        st.session_state[index_key] = 0
+
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 0.3, 1])
     
     with col1:
         site = st.selectbox(f"Site{' ' + key_suffix if key_suffix else ''}", 
                            list(sites.keys()), 
-                           key=f"site{key_suffix}")
-    
+                           key=site_key)
+        if st.session_state[prev_site_key] != site:
+            st.session_state[index_key] = 0
+            st.session_state[prev_site_key] = site
+            st.session_state[type_key] = "Energy"
+        
     with col2:
         data_type = st.selectbox(f"Data Type{' ' + key_suffix if key_suffix else ''}", 
                                get_keys(sites[site]), 
-                               key=f"data_type{key_suffix}")
-    
+                               key=type_key)
+        if st.session_state[prev_type_key] != data_type:
+            st.session_state[index_key] = 0
+            st.session_state[prev_type_key] = data_type
     with col3:
+        data_keys = list(sites[site][data_type].keys())
+        data_key_count = len(data_keys)
         data_desc = st.selectbox(f"Data Point{' ' + key_suffix if key_suffix else ''}", 
-                               list(sites[site][data_type].keys()), 
+                               data_keys,
+                               index=st.session_state[index_key],
                                key=f"data_desc{key_suffix}")
-    
-    with col4:
+        if data_desc != data_keys[st.session_state[index_key]]:
+            st.session_state[index_key] = data_keys.index(data_desc)
+
+    with col4:    
+        if st.button("Prev", key=f"prev{key_suffix}"):
+            st.session_state[index_key] = (st.session_state[index_key] - 1) % data_key_count
+            st.rerun()
+        if st.button("Next", key=f"next{key_suffix}"):
+            st.session_state[index_key] = (st.session_state[index_key] + 1) % data_key_count
+            st.rerun()
+
+    with col5:
         data_point = sites[site][data_type][data_desc]
         entity_id = get_entity_id(data_point)
         if entity_id:
