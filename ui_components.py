@@ -154,7 +154,7 @@ def create_data_selection_section(sites, key_suffix="", show_same_y_axis_option=
     if index_key not in st.session_state:
         st.session_state[index_key] = 0
 
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 0.3, 1])
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 2, 0.3, 0.3, 1])
     
     with col1:
         site = st.selectbox(f"Site{' ' + key_suffix if key_suffix else ''}", 
@@ -182,15 +182,25 @@ def create_data_selection_section(sites, key_suffix="", show_same_y_axis_option=
         if data_desc != data_keys[st.session_state[index_key]]:
             st.session_state[index_key] = data_keys.index(data_desc)
 
-    with col4:    
+    with col4:
+        st.markdown(
+            "<p style='font-size:7px;'>&nbsp</p>",
+            unsafe_allow_html=True
+        )
         if st.button("Prev", key=f"prev{key_suffix}"):
             st.session_state[index_key] = (st.session_state[index_key] - 1) % data_key_count
             st.rerun()
+
+    with col5:
+        st.markdown(
+            "<p style='font-size:7px;'>&nbsp</p>",
+            unsafe_allow_html=True
+        )
         if st.button("Next", key=f"next{key_suffix}"):
             st.session_state[index_key] = (st.session_state[index_key] + 1) % data_key_count
             st.rerun()
 
-    with col5:
+    with col6:
         data_point = sites[site][data_type][data_desc]
         entity_id = get_entity_id(data_point)
         if entity_id:
